@@ -1,0 +1,4 @@
+.qmake.stash
+gameOfLife
+build/*
+!build/.gitkeep
