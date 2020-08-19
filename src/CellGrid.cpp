@@ -4,8 +4,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Constructors and destructors
 
-CellGrid::CellGrid(int height, int width){
-  this->set_size(height, width);
+CellGrid::CellGrid(int width, int height){
+  this->set_size(width, height);
 }
 
 CellGrid::~CellGrid(){
@@ -17,14 +17,6 @@ CellGrid::~CellGrid(){
 // Getters and setters
 
 /**
-Return the grid cells height, borders exclude
-*/
-int CellGrid::height(){
-  // Don't forget to substract borders size
-  return grid_height - 2;
-}
-
-/**
 Return the grid cells width, borders exclude
 */
 int CellGrid::width(){
@@ -33,16 +25,24 @@ int CellGrid::width(){
 }
 
 /**
+Return the grid cells height, borders exclude
+*/
+int CellGrid::height(){
+  // Don't forget to substract borders size
+  return grid_height - 2;
+}
+
+/**
 Set the size of our cell tab (borders include) and allocate the necessary memory
 Have to only be used in the constructor and in "set_new_size()", which free previous memory for cell tabs additionaly
 */
-void CellGrid::set_size(int height, int width){
+void CellGrid::set_size(int width, int height){
   // 2 extra lines and 2 extra column for the borders, where all cells are empty
   // Moreover, it will allow us to start to count at 1
-  grid_height = height + 2;
   grid_width = width + 2;
+  grid_height = height + 2;
 
-  int size = grid_height * grid_width;
+  int size = grid_width * grid_height;
   cells = new bool[size];
   cells_next = new bool[size];
 
@@ -52,11 +52,11 @@ void CellGrid::set_size(int height, int width){
 /**
 Set the new size of our cell tab (borders include) and allocate the necessary memory, and delete previous cell tabs
 */
-void CellGrid::set_new_size(int height, int width){
+void CellGrid::set_new_size(int width, int height){
   delete[] cells;
   delete[] cells_next;
 
-  this->set_size(height, width);
+  this->set_size(width, height);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
