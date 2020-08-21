@@ -59,9 +59,6 @@ void CellGrid::set_new_size(int width, int height){
   this->set_size(width, height);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// CellGrid general methods
-
 /**
 Return the cell state, dead (false) or alive (true), at row "row" and column "col"
 We consider we begin to count at 1 for rows and columns
@@ -69,6 +66,9 @@ We consider we begin to count at 1 for rows and columns
 bool CellGrid::cell_state(int row, int col){
   return cells[row * grid_width + col];
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// CellGrid general methods
 
 /**
 Change the cell state (empty/alive)

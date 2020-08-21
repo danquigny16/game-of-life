@@ -51,9 +51,11 @@ OBJECTS_DIR   = build/
 ####### Files
 
 SOURCES       = src/GameOfLife.cpp \
+		src/CellItem.cpp \
 		src/CellGrid.cpp \
 		src/main.cpp build/moc_GameOfLife.cpp
 OBJECTS       = build/GameOfLife.o \
+		build/CellItem.o \
 		build/CellGrid.o \
 		build/main.o \
 		build/moc_GameOfLife.o
@@ -133,7 +135,9 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
 		GameOfLife.pro src/GameOfLife.hpp \
+		src/CellItem.hpp \
 		src/CellGrid.hpp src/GameOfLife.cpp \
+		src/CellItem.cpp \
 		src/CellGrid.cpp \
 		src/main.cpp
 QMAKE_TARGET  = gameOfLife
@@ -325,8 +329,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/GameOfLife.hpp src/CellGrid.hpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/GameOfLife.cpp src/CellGrid.cpp src/main.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/GameOfLife.hpp src/CellItem.hpp src/CellGrid.hpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/GameOfLife.cpp src/CellItem.cpp src/CellGrid.cpp src/main.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -361,7 +365,8 @@ build/moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.c
 compiler_moc_header_make_all: build/moc_GameOfLife.cpp
 compiler_moc_header_clean:
 	-$(DEL_FILE) build/moc_GameOfLife.cpp
-build/moc_GameOfLife.cpp: src/CellGrid.hpp \
+build/moc_GameOfLife.cpp: src/CellItem.hpp \
+		src/CellGrid.hpp \
 		src/GameOfLife.hpp \
 		build/moc_predefs.h \
 		/usr/lib/qt5/bin/moc
@@ -382,13 +387,20 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 ####### Compile
 
 build/GameOfLife.o: src/GameOfLife.cpp src/GameOfLife.hpp \
+		src/CellItem.hpp \
 		src/CellGrid.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/GameOfLife.o src/GameOfLife.cpp
+
+build/CellItem.o: src/CellItem.cpp src/GameOfLife.hpp \
+		src/CellItem.hpp \
+		src/CellGrid.hpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/CellItem.o src/CellItem.cpp
 
 build/CellGrid.o: src/CellGrid.cpp src/CellGrid.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/CellGrid.o src/CellGrid.cpp
 
 build/main.o: src/main.cpp src/GameOfLife.hpp \
+		src/CellItem.hpp \
 		src/CellGrid.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/main.o src/main.cpp
 

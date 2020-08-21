@@ -26,6 +26,9 @@ MOC_DIR= $${BUILD}
 HEADERS += $${SRC}/GameOfLife.hpp
 SOURCES += $${SRC}/GameOfLife.cpp
 
+HEADERS += $${SRC}/CellItem.hpp
+SOURCES += $${SRC}/CellItem.cpp
+
 HEADERS += $${SRC}/CellGrid.hpp
 SOURCES += $${SRC}/CellGrid.cpp
 
