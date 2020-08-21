@@ -2,8 +2,8 @@
 #include "CellItem.hpp"
 
 
-CellItem::CellItem(int x, int y, int width, int height, GameOfLife *game_of_life) :
-QGraphicsRectItem(x, y, width, height), game_of_life(game_of_life), is_alive(false){
+CellItem::CellItem(int x, int y, int len, GameOfLife *game_of_life) :
+QGraphicsRectItem(x, y, len, len), game_of_life(game_of_life), is_alive(false){
 
 }
 

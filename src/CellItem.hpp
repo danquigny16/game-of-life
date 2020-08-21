@@ -18,7 +18,7 @@ protected:
   void mousePressEvent(QGraphicsSceneMouseEvent *event);
 
 public:
-  CellItem(int x, int y, int width, int height, GameOfLife *game_of_life);
+  CellItem(int x, int y, int len, GameOfLife *game_of_life);
   bool is_cell();
 };
 

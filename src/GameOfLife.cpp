@@ -176,11 +176,7 @@ Set the size of our cell tab (borders exclude), update our cell_grid, free our p
 */
 void GameOfLife::set_size(){
   // Free previous item from our scene
-  for (int k = 0; k < grid_width * grid_height; k++){
-    scene->removeItem(cell_items[k]);
-    // "removeItem()" no longer free memory, have to do it ourself
-    delete cell_items[k];
-  }
+  scene->clear();
 
   // Set new size
   grid_width = grid_width_box->value();
@@ -195,8 +191,8 @@ void GameOfLife::set_size(){
 
   // Add new items with correct size into our scene
   // Coordinates (0, 0) is in the center, not in the top-left corner, adjust variables are there for that
-  int adjust_width = -vue->height()/2;
-  int adjust_height = -vue->width()/2;
+  int adjust_width = 0;//-vue->height()/2;
+  int adjust_height = 0;//-vue->width()/2;
 
   // Compute cell length
   int cell_width = vue->width() / grid_width;
@@ -208,12 +204,15 @@ void GameOfLife::set_size(){
   for (int j = 0; j < grid_height; j++){
     for (int i = 0; i < grid_width; i++){
       // rect = new CellItem(adjust_width + i * cell_width, adjust_height + j * cell_height, cell_width, cell_height, this);
-      rect = new CellItem(adjust_width + i * cell_len, adjust_height + j * cell_len, cell_len, cell_len, this);
+      rect = new CellItem(adjust_width + i * cell_len, adjust_height + j * cell_len, cell_len, this);
       rect->setBrush(empty_color);
       cell_items[j * grid_width + i] = rect;
       scene->addItem(rect);
     }
   }
+
+  // Allow us to center the scene on our grid
+  scene->setSceneRect(scene->itemsBoundingRect());
 }
 
 QColor GameOfLife::which_color(QString color_string){
