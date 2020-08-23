@@ -3,7 +3,7 @@ A GUI to build and run a Conway's game of life, but also a way to learn and see 
 through the code
 
 # Status
-not finished yet
+Basic version (just simulate a game of live with cell activated ourself)
 
 # Licence
 This code is under the LGPL3 license, and use Qt, also under the LGPL3 license  

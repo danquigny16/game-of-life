@@ -1,11 +1,13 @@
 #ifndef CELLGRID
 #define CELLGRID
 
+#include <iostream>
+
 
 class CellGrid{
 protected:
-  bool *cells;
-  bool *cells_next;
+  char *cells;
+  char *cells_next;
   int grid_width;
   int grid_height;
 
@@ -21,10 +23,13 @@ public:
   int width();
   void set_new_size(int width, int height);
 
-  bool cell_state(int row, int col);
-  void change_state(int row, int col);
+  char is_cell(int row, int col);
+  void set_alive(int row, int col);
+  void set_empty(int row, int col);
   void clear_grid();
+
   void compute_cells();
+  void compute_cells_seq();
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include "GameOfLife.hpp"
+#include <unistd.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,12 +59,12 @@ void GameOfLife::GUI_size(){
 
   // Row
   grid_height_box = new QSpinBox();
-  grid_height_box->setRange(1, 100);
+  grid_height_box->setRange(1, 200);
   size_form_layout->addRow("Number of row :", grid_height_box);
 
   // Column
   grid_width_box = new QSpinBox();
-  grid_width_box->setRange(1, 100);
+  grid_width_box->setRange(1, 200);
   size_form_layout->addRow("Number of column :", grid_width_box);
 
   // Button to confirm the size and create the cell grid
@@ -152,14 +153,50 @@ void GameOfLife::GUI_cell_color(){
 }
 
 void GameOfLife::GUI_launch(){
+  // Layout to contain all the elements related to the launch GUI component
+  QVBoxLayout *launch_layout = new QVBoxLayout();
+
+  // Layout to contain the field
+  QFormLayout *launch_form_layout = new QFormLayout();
+
+  // Number of iteration box
+  nb_iter_box = new QSpinBox();
+  nb_iter_box->setRange(1, 1000);
+  launch_form_layout->addRow("Number of iteration :", nb_iter_box);
+
+  // Number of iteration that remain
+  nb_iter_remain = new QLabel("Remaining iteration : 0");
+
+  // Layout to contain "clear" and "launch" button
+  QHBoxLayout *button_layout = new QHBoxLayout();
+
+  // Button to clear the grid
+  QPushButton *button_clear = new QPushButton("Clear");
+
+  // Connect the button to the slot "clear_grid"
+  QObject::connect(button_clear, SIGNAL(clicked()), this, SLOT(clear_grid()));
+
   // Button to start the game
   QPushButton *button_launch = new QPushButton("Launch");
 
-  // Add size_layout to our main_layout
-  main_layout->addWidget(button_launch, 8, 14, 1, 2);
+  // Connect the button to the slot "start_game_of_life"
+  QObject::connect(button_launch, SIGNAL(clicked()), this, SLOT(start_game_of_life()));
 
-  // Align our button to the right
-  main_layout->setAlignment(button_launch, Qt::AlignRight);
+  // Add buttons to the "button_layout"
+  button_layout->addWidget(button_clear);
+  button_layout->addWidget(button_launch);
+
+  // Align our buttons
+  button_layout->setAlignment(button_clear, Qt::AlignLeft);
+  button_layout->setAlignment(button_launch, Qt::AlignRight);
+
+  // Add all in the launch_layout
+  launch_layout->addLayout(launch_form_layout);
+  launch_layout->addWidget(nb_iter_remain);
+  launch_layout->addLayout(button_layout);
+
+  // Add launch_layout to our main_layout
+  main_layout->addLayout(launch_layout, 8, 14, 1, 2);
 }
 
 GameOfLife::~GameOfLife(){
@@ -170,6 +207,22 @@ GameOfLife::~GameOfLife(){
 
 ////////////////////////////////////////////////////////////////////////////////
 // Getters and setters (and function they need)
+
+int GameOfLife::get_grid_width(){
+  return grid_width;
+}
+
+int GameOfLife::get_grid_height(){
+  return grid_height;
+}
+
+QColor GameOfLife::get_cell_color(){
+  return cell_color;
+}
+
+QColor GameOfLife::get_empty_color(){
+  return empty_color;
+}
 
 /**
 Set the size of our cell tab (borders exclude), update our cell_grid, free our previous items from the scene and allocate the new ones
@@ -189,11 +242,6 @@ void GameOfLife::set_size(){
   delete[] cell_items;
   cell_items = new CellItem*[grid_width * grid_height];
 
-  // Add new items with correct size into our scene
-  // Coordinates (0, 0) is in the center, not in the top-left corner, adjust variables are there for that
-  int adjust_width = 0;//-vue->height()/2;
-  int adjust_height = 0;//-vue->width()/2;
-
   // Compute cell length
   int cell_width = vue->width() / grid_width;
   int cell_height = vue->height() / grid_height;
@@ -201,12 +249,11 @@ void GameOfLife::set_size(){
 
   // Add all new cell items
   CellItem *rect;
-  for (int j = 0; j < grid_height; j++){
-    for (int i = 0; i < grid_width; i++){
-      // rect = new CellItem(adjust_width + i * cell_width, adjust_height + j * cell_height, cell_width, cell_height, this);
-      rect = new CellItem(adjust_width + i * cell_len, adjust_height + j * cell_len, cell_len, this);
+  for (int i = 0; i < grid_height; i++){
+    for (int j = 0; j < grid_width; j++){
+      rect = new CellItem(j * cell_len, i * cell_len, cell_len, this, i, j);
       rect->setBrush(empty_color);
-      cell_items[j * grid_width + i] = rect;
+      cell_items[i * grid_width + j] = rect;
       scene->addItem(rect);
     }
   }
@@ -273,6 +320,18 @@ QString GameOfLife::which_color(QColor q_color){
   return "Black";
 }
 
+void GameOfLife::update_cell_color(){
+  // update all cell color
+  for (int i = 0; i < grid_width * grid_height; i++){
+    if (cell_items[i]->is_cell()){
+      cell_items[i]->setBrush(cell_color);
+    }
+    else{
+      cell_items[i]->setBrush(empty_color);
+    }
+  }
+}
+
 void GameOfLife::set_cell_color(){
   // Retrieve the color
   QColor c_color = this->which_color(cell_color_box->currentText());
@@ -291,7 +350,7 @@ void GameOfLife::set_cell_color(){
   cell_color = c_color;
 
   // Don't forget to change cells color
-  this->update_cell_grid_color();
+  this->update_cell_color();
 }
 
 void GameOfLife::set_empty_color(){
@@ -312,33 +371,73 @@ void GameOfLife::set_empty_color(){
   empty_color = e_color;
 
   // Don't forget to change cells color
-  this->update_cell_grid_color();
+  this->update_cell_color();
 }
 
-void GameOfLife::update_cell_grid_color(){
-  // update all cell color
-  for (int i = 0; i < grid_width * grid_height; i++){
-    if (cell_items[i]->is_cell()){
-      cell_items[i]->setBrush(cell_color);
-    }
-    else{
-      cell_items[i]->setBrush(empty_color);
+////////////////////////////////////////////////////////////////////////////////
+// Method for the computing of new "cell_grid"
+
+void GameOfLife::set_grid_cell_alive(int row, int col){
+  cell_grid->set_alive(row+1, col+1);
+}
+
+void GameOfLife::set_grid_cell_empty(int row, int col){
+  cell_grid->set_empty(row+1, col+1);
+}
+
+void GameOfLife::update_cell_grid(){
+  for (int i = 0; i < grid_height; i++){
+    for (int j = 0; j < grid_width; j++){
+      // Cell number
+      int cell_num = i * grid_width + j;
+
+      // Update "cell_item" (in "cell_grid", we begin to count at 1)
+      if (cell_grid->is_cell(i+1, j+1)){
+        cell_items[cell_num]->set_alive();
+      }
+      else{
+        cell_items[cell_num]->set_empty();
+      }
+
+      // Update the cell times color
+      if (cell_items[cell_num]->is_cell()){
+        cell_items[cell_num]->setBrush(cell_color);
+      }
+      else{
+        cell_items[cell_num]->setBrush(empty_color);
+      }
     }
   }
 }
 
-int GameOfLife::get_grid_width(){
-  return grid_width;
+void GameOfLife::clear_grid(){
+  // Clear our GUI grid
+  for (int i = 0; i < grid_width * grid_height; i++){
+    cell_items[i]->setBrush(empty_color);
+    cell_items[i]->set_empty();
+  }
+
+  // Clear our "cell_grid"
+  cell_grid->clear_grid();
 }
 
-int GameOfLife::get_grid_height(){
-  return grid_height;
+/**
+NO SLEEP FUNCTION, IT WILL FREEZE THE GUI
+*/
+void delay(int time){
+  QTime dieTime= QTime::currentTime().addMSecs(time);
+  while (QTime::currentTime() < dieTime){
+    QCoreApplication::processEvents(QEventLoop::AllEvents, time);
+  }
 }
 
-QColor GameOfLife::get_cell_color(){
-  return cell_color;
-}
-
-QColor GameOfLife::get_empty_color(){
-  return empty_color;
+void GameOfLife::start_game_of_life(){
+  int nb_iter = nb_iter_box->value();
+  for (int i = nb_iter; i > 0; i--){
+    delay(50);
+    cell_grid->compute_cells();
+    this->update_cell_grid();
+    nb_iter_remain->setText("Remaining iteration : " + QString::number(i));
+  }
+  nb_iter_remain->setText("Remaining iteration : 0");
 }

@@ -2,8 +2,8 @@
 #include "CellItem.hpp"
 
 
-CellItem::CellItem(int x, int y, int len, GameOfLife *game_of_life) :
-QGraphicsRectItem(x, y, len, len), game_of_life(game_of_life), is_alive(false){
+CellItem::CellItem(int x, int y, int len, GameOfLife *game_of_life, int row, int col) :
+QGraphicsRectItem(x, y, len, len), game_of_life(game_of_life), row(row), col(col), is_alive(false){
 
 }
 
@@ -17,12 +17,22 @@ void CellItem::mousePressEvent(QGraphicsSceneMouseEvent *event){
   // Set the new color
   if (is_alive){
     this->setBrush(game_of_life->get_cell_color());
+    game_of_life->set_grid_cell_alive(row, col);
   }
   else{
     this->setBrush(game_of_life->get_empty_color());
+    game_of_life->set_grid_cell_empty(row, col);
   }
 }
 
 bool CellItem::is_cell(){
   return is_alive;
+}
+
+void CellItem::set_alive(){
+  is_alive = true;
+}
+
+void CellItem::set_empty(){
+  is_alive = false;
 }
