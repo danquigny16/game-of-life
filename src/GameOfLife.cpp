@@ -1,19 +1,24 @@
 #include "GameOfLife.hpp"
-#include <unistd.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Constructors and destructors
+// Constructors and destructors (and methods they need)
 
-GameOfLife::GameOfLife() : QMainWindow(), grid_width(0), grid_height(0), cell_color(Qt::black), empty_color(Qt::white){
+/**
+Constructor
+*/
+GameOfLife::GameOfLife() : QMainWindow(), grid_width(0), grid_height(0), cell_item_color(Qt::black), empty_item_color(Qt::white){
   this->set_window_parameters();
   this->main_variables_initialization();
-  this->GUI_vue();
+  this->GUI_view();
   this->GUI_size();
-  this->GUI_cell_color();
+  this->GUI_color();
   this->GUI_launch();
 }
 
+/**
+Set the window parameters, give it a title make make it open at maximum size
+*/
 void GameOfLife::set_window_parameters(){
   // Window open with its maximum size
   this->setWindowState(Qt::WindowMaximized);
@@ -22,6 +27,9 @@ void GameOfLife::set_window_parameters(){
   this->setWindowTitle("Game of life");
 }
 
+/**
+Initialize our main variables
+*/
 void GameOfLife::main_variables_initialization(){
   // Create a SDI (Single Document Interface) widget to contain our main layout
   sdi_widget = new QWidget();
@@ -31,9 +39,9 @@ void GameOfLife::main_variables_initialization(){
   main_layout = new QGridLayout();
   sdi_widget->setLayout(main_layout);
 
-  // Initialize our scene and our vue
+  // Initialize our scene and our view
   scene = new QGraphicsScene();
-  vue = new QGraphicsView(scene);
+  view = new QGraphicsView(scene);
 
   // Initialize our cell grid with at NULL, waiting the user to enter size and cells
   cell_grid = new CellGrid(0, 0);
@@ -42,16 +50,21 @@ void GameOfLife::main_variables_initialization(){
   // "scene->addRect()" return a pointer, and to remove a rectangle from a scene, we need to pass his address, that's why we use a tab of pointer
   // We initialize it with a not NULL value such that the "delete" in "set_size()" method will not cause a problem
   cell_items = new CellItem*[1];
-  //cell_items[0] = scene->addRect(QRect(-vue->width()/2, -vue->height()/2, vue->width(), vue->height()), QPen(Qt::black), empty_color);
 }
 
-void GameOfLife::GUI_vue(){
-  // Add our vue to our main layout
-  main_layout->addWidget(vue, 0, 0, 9, 14);
+/**
+Set view and scene component in the GUI
+*/
+void GameOfLife::GUI_view(){
+  // Add our view to our main layout
+  main_layout->addWidget(view, 0, 0, 9, 14);
 }
 
+/**
+Set GUI size component, allowing us to create a grid with the desired size
+*/
 void GameOfLife::GUI_size(){
-  // Layout to contain all the elements related to the size GUI component
+  // Layout to contain all the elements related to the GUI size component
   QVBoxLayout *size_layout = new QVBoxLayout();
 
   // Layout to contain the field
@@ -68,7 +81,7 @@ void GameOfLife::GUI_size(){
   size_form_layout->addRow("Number of column :", grid_width_box);
 
   // Button to confirm the size and create the cell grid
-  QPushButton *button_size = new QPushButton("Confirm");
+  button_size = new QPushButton("Confirm");
 
   // Connect the button to the slot "set_size"
   QObject::connect(button_size, SIGNAL(clicked()), this, SLOT(set_size()));
@@ -84,8 +97,11 @@ void GameOfLife::GUI_size(){
   main_layout->addLayout(size_layout, 0, 14, 1, 2);
 }
 
-void GameOfLife::GUI_cell_color(){
-  // Layout to contain all the elements related to the choice of color for cell and empty color
+/**
+Set GUI color component, allowing decide of empty and cell color
+*/
+void GameOfLife::GUI_color(){
+  // Layout to contain all the elements related to the GUI color component
   QFormLayout *color_layout = new QFormLayout();
 
   // Create our color (little set of choices because if colors are not enough different, it will be difficult to make a difference)
@@ -152,8 +168,11 @@ void GameOfLife::GUI_cell_color(){
   main_layout->addLayout(color_layout, 3, 14, 1, 2);
 }
 
+/**
+Set GUI launch component, allowing us to launch "game of life" or clean our cell grid
+*/
 void GameOfLife::GUI_launch(){
-  // Layout to contain all the elements related to the launch GUI component
+  // Layout to contain all the elements related to the GUI launch component
   QVBoxLayout *launch_layout = new QVBoxLayout();
 
   // Layout to contain the field
@@ -171,13 +190,13 @@ void GameOfLife::GUI_launch(){
   QHBoxLayout *button_layout = new QHBoxLayout();
 
   // Button to clear the grid
-  QPushButton *button_clear = new QPushButton("Clear");
+  button_clear = new QPushButton("Clear");
 
   // Connect the button to the slot "clear_grid"
   QObject::connect(button_clear, SIGNAL(clicked()), this, SLOT(clear_grid()));
 
   // Button to start the game
-  QPushButton *button_launch = new QPushButton("Launch");
+  button_launch = new QPushButton("Launch");
 
   // Connect the button to the slot "start_game_of_life"
   QObject::connect(button_launch, SIGNAL(clicked()), this, SLOT(start_game_of_life()));
@@ -199,36 +218,40 @@ void GameOfLife::GUI_launch(){
   main_layout->addLayout(launch_layout, 8, 14, 1, 2);
 }
 
+/**
+Destructor
+*/
 GameOfLife::~GameOfLife(){
   // We don't need to delete Qt objects, Qt delete them for us
   // So we only need to delete our cell_grid which is not a Qt objects
   delete cell_grid;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Getters and setters (and function they need)
 
-int GameOfLife::get_grid_width(){
+////////////////////////////////////////////////////////////////////////////////
+// Getters and setters (related to the size)
+
+/**
+Give cell grid width, border exclude
+@return the cell grid width, borders exclude
+*/
+int GameOfLife::width(){
   return grid_width;
 }
 
-int GameOfLife::get_grid_height(){
+/**
+Give cell grid height, border exclude
+@return the cell grid height, borders exclude
+*/
+int GameOfLife::height(){
   return grid_height;
-}
-
-QColor GameOfLife::get_cell_color(){
-  return cell_color;
-}
-
-QColor GameOfLife::get_empty_color(){
-  return empty_color;
 }
 
 /**
 Set the size of our cell tab (borders exclude), update our cell_grid, free our previous items from the scene and allocate the new ones
 */
 void GameOfLife::set_size(){
-  // Free previous item from our scene
+  // Free previous cell items from our scene
   scene->clear();
 
   // Set new size
@@ -242,17 +265,17 @@ void GameOfLife::set_size(){
   delete[] cell_items;
   cell_items = new CellItem*[grid_width * grid_height];
 
-  // Compute cell length
-  int cell_width = vue->width() / grid_width;
-  int cell_height = vue->height() / grid_height;
+  // Compute cell length (take the min so that our grid can fill our scene)
+  int cell_width = view->width() / grid_width;
+  int cell_height = view->height() / grid_height;
   int cell_len = std::min(cell_width, cell_height);
 
   // Add all new cell items
   CellItem *rect;
   for (int i = 0; i < grid_height; i++){
     for (int j = 0; j < grid_width; j++){
-      rect = new CellItem(j * cell_len, i * cell_len, cell_len, this, i, j);
-      rect->setBrush(empty_color);
+      rect = new CellItem(j * cell_len, i * cell_len, cell_len, this, cell_grid, i+1, j+1);
+      rect->setBrush(empty_item_color);
       cell_items[i * grid_width + j] = rect;
       scene->addItem(rect);
     }
@@ -262,6 +285,31 @@ void GameOfLife::set_size(){
   scene->setSceneRect(scene->itemsBoundingRect());
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Getters and setters (related to color)
+
+/**
+Give cell color
+@return the cell color
+*/
+QColor GameOfLife::cell_color(){
+  return cell_item_color;
+}
+
+/**
+Give empty color
+@return the empty color
+*/
+QColor GameOfLife::empty_color(){
+  return empty_item_color;
+}
+
+/**
+Give the QColor corresponding to the QString color
+@param color_string Color of type QString
+@return the QColor corresponding to the QString color
+*/
 QColor GameOfLife::which_color(QString color_string){
   if (color_string == "Black"){
     return Qt::black;
@@ -291,6 +339,11 @@ QColor GameOfLife::which_color(QString color_string){
   return Qt::black;
 }
 
+/**
+Give the QString corresponding to the QColor color
+@param q_color Color of type QColor
+@return the QString corresponding to the QColor color
+*/
 QString GameOfLife::which_color(QColor q_color){
   if (q_color == Qt::black){
     return "Black";
@@ -320,100 +373,93 @@ QString GameOfLife::which_color(QColor q_color){
   return "Black";
 }
 
+/**
+Update all cell color (used when user change cell and/or empty color)
+*/
 void GameOfLife::update_cell_color(){
-  // update all cell color
   for (int i = 0; i < grid_width * grid_height; i++){
     if (cell_items[i]->is_cell()){
-      cell_items[i]->setBrush(cell_color);
+      cell_items[i]->setBrush(cell_item_color);
     }
     else{
-      cell_items[i]->setBrush(empty_color);
+      cell_items[i]->setBrush(empty_item_color);
     }
   }
 }
 
+/**
+Set cell color to the color the user choose, then update cell items color
+*/
 void GameOfLife::set_cell_color(){
   // Retrieve the color
   QColor c_color = this->which_color(cell_color_box->currentText());
 
   // If it is equal to the empty color, we switch
-  if (c_color == empty_color){
-    // We don't forget to temporarily disconnect our "empty_color_box" to the slot "set_empty_color()"
+  if (c_color == empty_item_color){
+    // We don't forget to temporarily disconnect our "empty_color_box" to the slot "set_empty_color)"
     // If we don't, "setCurrentIndex()" will call the slot and that will cause a problem (all cell of the same color)
     QObject::disconnect(empty_color_box, SIGNAL(currentIndexChanged(int)), this, SLOT(set_empty_color()));
-    empty_color_box->setCurrentIndex(empty_color_box->findText(which_color(cell_color)));
-    empty_color = cell_color;
+    empty_color_box->setCurrentIndex(empty_color_box->findText(which_color(cell_item_color)));
+    empty_item_color = cell_item_color;
     QObject::connect(empty_color_box, SIGNAL(currentIndexChanged(int)), this, SLOT(set_empty_color()));
   }
 
   // We set the new color
-  cell_color = c_color;
+  cell_item_color = c_color;
 
-  // Don't forget to change cells color
+  // Don't forget to change cell items color
   this->update_cell_color();
 }
 
+/**
+Set empty color to the color the user choose, then update cell items color
+*/
 void GameOfLife::set_empty_color(){
   // Retrieve the color
   QColor e_color = this->which_color(empty_color_box->currentText());
 
   // If it is equal to the cell color, we switch
-  if (e_color == cell_color){
+  if (e_color == cell_item_color){
     // We don't forget to temporarily disconnect our "cell_color_box" to the slot "set_cell_color()"
     // If we don't, "setCurrentIndex()" will call the slot and that will cause a problem (all cell of the same color)
     QObject::disconnect(cell_color_box, SIGNAL(currentIndexChanged(int)), this, SLOT(set_cell_color()));
-    cell_color_box->setCurrentIndex(cell_color_box->findText(which_color(empty_color)));
-    cell_color = empty_color;
+    cell_color_box->setCurrentIndex(cell_color_box->findText(which_color(empty_item_color)));
+    cell_item_color = empty_item_color;
     QObject::connect(cell_color_box, SIGNAL(currentIndexChanged(int)), this, SLOT(set_cell_color()));
   }
 
   // We set the new color
-  empty_color = e_color;
+  empty_item_color = e_color;
 
   // Don't forget to change cells color
   this->update_cell_color();
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
-// Method for the computing of new "cell_grid"
+// Getters and setters (related to cell grid)
 
-void GameOfLife::set_grid_cell_alive(int row, int col){
-  cell_grid->set_alive(row+1, col+1);
+/**
+Say if the cell at row "row" and at column "col" is alive or empty
+We start to count at 1 for rox and column
+@param row Cell row
+@param col Cell column
+@return true if the cell at row "row" and at column "col" is alive, false otherwise
+*/
+bool GameOfLife::is_cell(int row, int col){
+  return cell_grid->is_cell(row, col);
 }
 
-void GameOfLife::set_grid_cell_empty(int row, int col){
-  cell_grid->set_empty(row+1, col+1);
-}
 
-void GameOfLife::update_cell_grid(){
-  for (int i = 0; i < grid_height; i++){
-    for (int j = 0; j < grid_width; j++){
-      // Cell number
-      int cell_num = i * grid_width + j;
+////////////////////////////////////////////////////////////////////////////////
+// GameOfLife general methods
 
-      // Update "cell_item" (in "cell_grid", we begin to count at 1)
-      if (cell_grid->is_cell(i+1, j+1)){
-        cell_items[cell_num]->set_alive();
-      }
-      else{
-        cell_items[cell_num]->set_empty();
-      }
-
-      // Update the cell times color
-      if (cell_items[cell_num]->is_cell()){
-        cell_items[cell_num]->setBrush(cell_color);
-      }
-      else{
-        cell_items[cell_num]->setBrush(empty_color);
-      }
-    }
-  }
-}
-
+/**
+Clear our cell grid (regular cell grid and cell item grid), all cell are set to empty
+*/
 void GameOfLife::clear_grid(){
-  // Clear our GUI grid
+  // Clear our cell item grid
   for (int i = 0; i < grid_width * grid_height; i++){
-    cell_items[i]->setBrush(empty_color);
     cell_items[i]->set_empty();
   }
 
@@ -421,8 +467,14 @@ void GameOfLife::clear_grid(){
   cell_grid->clear_grid();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Method for computing the new "cell_grid"
+
 /**
+Classic delay function
 NO SLEEP FUNCTION, IT WILL FREEZE THE GUI
+we use processEvents, it will moreover allow us to handle events during the sleep
+@param time Time to sleep in millisecond
 */
 void delay(int time){
   QTime dieTime= QTime::currentTime().addMSecs(time);
@@ -431,13 +483,47 @@ void delay(int time){
   }
 }
 
+/**
+Start the game of life
+*/
 void GameOfLife::start_game_of_life(){
+  // Retrieve the number of iteration wanted
   int nb_iter = nb_iter_box->value();
+
+  // Start the game of life
   for (int i = nb_iter; i > 0; i--){
     delay(50);
+
+    // Compute the new cell grid
     cell_grid->compute_cells();
+
+    // Update cell item grid for the GUI
     this->update_cell_grid();
+
+    // Update the number of iteration remaining
     nb_iter_remain->setText("Remaining iteration : " + QString::number(i));
   }
+
+  // Don't forget the last one, when all iteration are done
   nb_iter_remain->setText("Remaining iteration : 0");
+}
+
+/**
+Do one step of the game of life
+*/
+void GameOfLife::update_cell_grid(){
+  for (int i = 0; i < grid_height; i++){
+    for (int j = 0; j < grid_width; j++){
+      // Cell number
+      int cell_num = i * grid_width + j;
+
+      // Update cell items (in our regular cell grid, we begin to count at 1)
+      if (cell_grid->is_cell(i+1, j+1)){
+        cell_items[cell_num]->set_alive();
+      }
+      else{
+        cell_items[cell_num]->set_empty();
+      }
+    }
+  }
 }
