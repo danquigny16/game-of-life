@@ -53,7 +53,7 @@ void CellItem::mousePressEvent(QGraphicsSceneMouseEvent *event){
 Tell us if the cell item is alive
 @return true if the cell is alive, false otherwise
 */
-bool CellItem::is_cell(){
+bool CellItem::is_cell() const{
   return is_alive;
 }
 

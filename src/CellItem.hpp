@@ -26,7 +26,7 @@ protected:
 public:
   CellItem(int x, int y, int len, GameOfLife *game_of_life, CellGrid *cell_grid, int row, int col);
 
-  bool is_cell();
+  bool is_cell() const;
   void set_alive();
   void set_empty();
 };

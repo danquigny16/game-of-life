@@ -30,7 +30,7 @@ CellGrid::~CellGrid(){
 Give cell grid width, border exclude
 @return the cell grid width, borders exclude
 */
-int CellGrid::width(){
+int CellGrid::width() const{
   // Don't forget to substract borders size
   return grid_width - 2;
 }
@@ -39,7 +39,7 @@ int CellGrid::width(){
 Give cell grid height, border exclude
 @return the cell grid height, borders exclude
 */
-int CellGrid::height(){
+int CellGrid::height() const{
   // Don't forget to substract borders size
   return grid_height - 2;
 }
@@ -90,7 +90,7 @@ We consider we begin to count at 1 for rows and columns
 @param col Cell column, starting to count at 1
 @return the cell state, 0 for empty, 1 for alive
 */
-char CellGrid::is_cell(int row, int col){
+char CellGrid::is_cell(int row, int col) const{
   return cells[row * grid_width + col];
 }
 
@@ -173,6 +173,7 @@ void CellGrid::compute_cells_seq(){
   int k = grid_width + 1;
   int sub_grid_height = grid_height - 2;
   int sub_grid_width = grid_width - 2;
+
   for (int i = 1; i <= sub_grid_height; i++){
     for (int j = 1; j <= sub_grid_width; j++){
       // Count the number of cells around the cell "k" including it

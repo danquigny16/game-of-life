@@ -1,6 +1,9 @@
 # Qt modules
 QT += widgets multimedia
 
+# g++ version
+QMAKE_CXXFLAGS += -std=c++11
+
 # Executable name
 TARGET = gameOfLife
 
@@ -31,5 +34,8 @@ SOURCES += $${SRC}/CellItem.cpp
 
 HEADERS += $${SRC}/CellGrid.hpp
 SOURCES += $${SRC}/CellGrid.cpp
+
+HEADERS += $${SRC}/RleHandler.hpp
+SOURCES += $${SRC}/RleHandler.cpp
 
 SOURCES += $${SRC}/main.cpp

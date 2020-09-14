@@ -14,6 +14,8 @@ GameOfLife::GameOfLife() : QMainWindow(), grid_width(0), grid_height(0), cell_it
   this->GUI_size();
   this->GUI_color();
   this->GUI_launch();
+  this->GUI_open_rle();
+  this->GUI_menu();
 }
 
 /**
@@ -31,21 +33,30 @@ void GameOfLife::set_window_parameters(){
 Initialize our main variables
 */
 void GameOfLife::main_variables_initialization(){
+  //////////////////////////////////////////////////////////////////////////////
   // Create a SDI (Single Document Interface) widget to contain our main layout
   sdi_widget = new QWidget();
   this->setCentralWidget(sdi_widget);
 
   // Set our main layout which will contain everything, it will be a 9 line 16 column grid layout
   main_layout = new QGridLayout();
+  main_layout->setMargin(0);
   sdi_widget->setLayout(main_layout);
 
+  //////////////////////////////////////////////////////////////////////////////
   // Initialize our scene and our view
   scene = new QGraphicsScene();
   view = new QGraphicsView(scene);
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Initialize our RleHandler
+  rle_handler = new RleHandler();
+
+  //////////////////////////////////////////////////////////////////////////////
   // Initialize our cell grid with at NULL, waiting the user to enter size and cells
   cell_grid = new CellGrid(0, 0);
 
+  //////////////////////////////////////////////////////////////////////////////
   // "cell_items" represent the cells in the gui, it is a tab of pointer
   // "scene->addRect()" return a pointer, and to remove a rectangle from a scene, we need to pass his address, that's why we use a tab of pointer
   // We initialize it with a not NULL value such that the "delete" in "set_size()" method will not cause a problem
@@ -219,12 +230,80 @@ void GameOfLife::GUI_launch(){
 }
 
 /**
+Set GUI open rle component, allowing us to open rle file
+*/
+void GameOfLife::GUI_open_rle(){
+  //////////////////////////////////////////////////////////////////////////////
+  // Path to patterns, careful with the separator, different according to the OS
+  #ifdef WIN32
+  QString separator = "\\";
+  #else // Unix-like, i.e ubuntu, apple, ...
+  QString separator = "/";
+  #endif
+  QString patterns_folder = QDir::currentPath() + separator + "patterns";
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Model to contain the files
+  model_rle = new QFileSystemModel();
+  model_rle->setRootPath(patterns_folder);
+
+  // Add filter to be sure to have rle file
+  model_rle->setFilter(QDir::Files | QDir::NoDotAndDotDot);
+  model_rle->setNameFilters(QStringList("*.rle"));
+
+  // View to display our model
+  view_rle = new QListView();
+  view_rle->setModel(model_rle);
+  view_rle->setRootIndex(model_rle->index(patterns_folder));
+
+  // Use the "doubleClicked" signal to retrieve the selected file
+  QObject::connect(view_rle, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(open_rle_selected_file(QModelIndex)));
+
+  //////////////////////////////////////////////////////////////////////////////
+  // We create a new window to ask the user which file he wants to use
+  new_window = new QWidget();
+  new_window->setWindowTitle("Choose a file to open");
+
+  // A layout to contain our view
+  QVBoxLayout *layout = new QVBoxLayout(new_window);
+
+  // Add our view to the layout
+  layout->addWidget(view_rle);
+}
+
+/**
+Set GUI menu component, allowing us to open and write rle files
+*/
+void GameOfLife::GUI_menu(){
+  QMenu *menuFile = menuBar()->addMenu("&File");
+  QAction *open_rle = new QAction("&Open");
+  menuFile->addAction(open_rle);
+
+  connect(open_rle, SIGNAL(triggered()), this, SLOT(open_rle()));
+  open_rle->setShortcut(QKeySequence("Ctrl+O"));
+}
+
+/**
 Destructor
 */
 GameOfLife::~GameOfLife(){
-  // We don't need to delete Qt objects, Qt delete them for us
-  // So we only need to delete our cell_grid which is not a Qt objects
+  // We don't need to delete Qt objects that are "GameOfLife" children, Qt delete them for us
+  // So we only need to delete our cell_grid which is not a Qt objects and rle_handler
   delete cell_grid;
+  delete rle_handler;
+}
+
+/**
+Classic delay function
+NO SLEEP FUNCTION, IT WILL FREEZE THE GUI
+we use processEvents, it will moreover allow us to handle events during the sleep
+@param time Time to sleep in millisecond
+*/
+void delay(int time){
+  QTime dieTime= QTime::currentTime().addMSecs(time);
+  while (QTime::currentTime() < dieTime){
+    QCoreApplication::processEvents(QEventLoop::AllEvents, time);
+  }
 }
 
 
@@ -235,7 +314,7 @@ GameOfLife::~GameOfLife(){
 Give cell grid width, border exclude
 @return the cell grid width, borders exclude
 */
-int GameOfLife::width(){
+int GameOfLife::width() const{
   return grid_width;
 }
 
@@ -243,7 +322,7 @@ int GameOfLife::width(){
 Give cell grid height, border exclude
 @return the cell grid height, borders exclude
 */
-int GameOfLife::height(){
+int GameOfLife::height() const{
   return grid_height;
 }
 
@@ -293,7 +372,7 @@ void GameOfLife::set_size(){
 Give cell color
 @return the cell color
 */
-QColor GameOfLife::cell_color(){
+QColor GameOfLife::cell_color() const{
   return cell_item_color;
 }
 
@@ -301,7 +380,7 @@ QColor GameOfLife::cell_color(){
 Give empty color
 @return the empty color
 */
-QColor GameOfLife::empty_color(){
+QColor GameOfLife::empty_color() const{
   return empty_item_color;
 }
 
@@ -310,7 +389,7 @@ Give the QColor corresponding to the QString color
 @param color_string Color of type QString
 @return the QColor corresponding to the QString color
 */
-QColor GameOfLife::which_color(QString color_string){
+QColor GameOfLife::which_color(QString color_string) const{
   if (color_string == "Black"){
     return Qt::black;
   }
@@ -344,7 +423,7 @@ Give the QString corresponding to the QColor color
 @param q_color Color of type QColor
 @return the QString corresponding to the QColor color
 */
-QString GameOfLife::which_color(QColor q_color){
+QString GameOfLife::which_color(QColor q_color) const{
   if (q_color == Qt::black){
     return "Black";
   }
@@ -441,13 +520,115 @@ void GameOfLife::set_empty_color(){
 
 /**
 Say if the cell at row "row" and at column "col" is alive or empty
-We start to count at 1 for rox and column
-@param row Cell row
-@param col Cell column
+@param row Cell row (We start to count at 1)
+@param col Cell column (We start to count at 1)
 @return true if the cell at row "row" and at column "col" is alive, false otherwise
 */
-bool GameOfLife::is_cell(int row, int col){
+bool GameOfLife::is_cell(int row, int col) const{
   return cell_grid->is_cell(row, col);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Getters and setters (related to cell items)
+
+/**
+Set the cell item status of cell item at row "row" and column "col" to alive
+@param row Cell row (We start to count at 1)
+@param col Cell column (We start to count at 1)
+*/
+void GameOfLife::set_item_alive(int row, int col){
+  cell_items[(row-1) * grid_width + (col-1)]->set_alive();
+}
+
+/**
+Set the cell item status of cell item at row "row" and column "col" to empty
+@param row Cell row (We start to count at 1)
+@param col Cell column (We start to count at 1)
+*/
+void GameOfLife::set_item_empty(int row, int col){
+  cell_items[(row-1) * grid_width + (col-1)]->set_empty();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling rle file methods
+
+/**
+Open the selected file
+@param index Index of the selected file in the model
+*/
+void GameOfLife::open_rle_selected_file(const QModelIndex &index){
+  //////////////////////////////////////////////////////////////////////////////
+  // Don't forget to close the window containing the rle(s) file the user can open
+  new_window->close();
+
+  // Reading the given file
+  int status = rle_handler->read_rle_file(model_rle->fileName(index).toStdString());
+
+  // We display a message according to the status given by the RleHandler, if an error has occured
+  if (status != RleHandler::OK){
+    if (status == RleHandler::ERR_RLE){
+      QMessageBox::warning(this, "Error rle", "There was an error in your rle file");
+    }
+    else if (status == RleHandler::ERR_OPEN){
+      QMessageBox::warning(this, "Error open", "Could not open your file");
+    }
+    return;
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Check if there is no problem with the size
+
+  // Width
+  int width_required = rle_handler->pattern_width() + rle_handler->pattern_corner_x();
+  if (width_required > grid_width){
+    QMessageBox::warning(this, "Error pattern", "Your grid is not wide enough, need " + QString::number(width_required) + " cells");
+    return;
+  }
+
+  // Height
+  int height_required = rle_handler->pattern_height() + rle_handler->pattern_corner_y();
+  if (height_required > grid_width){
+    QMessageBox::warning(this, "Error pattern", "Your grid is not high enough, need " + QString::number(height_required) + " cells");
+    return;
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Check if the pattern is designed for gol rule
+  if (!rle_handler->have_gol_rule()){
+    QMessageBox::warning(this, "Error pattern", "The pattern is not designed for game of life rule, may not have the wanted behavior");
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Apply the pattern
+
+  // Index where to end
+  int pattern_ending_row = height_required + 1;
+  int pattern_ending_col = width_required + 1;
+
+  // Filling the part our grid with our pattern
+  for (int i = 1 + rle_handler->pattern_corner_x(); i < pattern_ending_row; i++){
+    for (int j = 1 + rle_handler->pattern_corner_y(); j < pattern_ending_col; j++){
+      // Update the cell
+      if (rle_handler->pattern_cell(i, j)){
+        set_item_alive(i, j);
+        cell_grid->set_alive(i, j);
+      }
+      else{
+        set_item_empty(i, j);
+        cell_grid->set_empty(i, j);
+      }
+    }
+  }
+}
+
+/**
+Display a window containing the rle file(s) the user can open
+*/
+void GameOfLife::open_rle(){
+  // Display the window to let the user choose the file he wants to open
+  new_window->show();
 }
 
 
@@ -467,21 +648,9 @@ void GameOfLife::clear_grid(){
   cell_grid->clear_grid();
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // Method for computing the new "cell_grid"
-
-/**
-Classic delay function
-NO SLEEP FUNCTION, IT WILL FREEZE THE GUI
-we use processEvents, it will moreover allow us to handle events during the sleep
-@param time Time to sleep in millisecond
-*/
-void delay(int time){
-  QTime dieTime= QTime::currentTime().addMSecs(time);
-  while (QTime::currentTime() < dieTime){
-    QCoreApplication::processEvents(QEventLoop::AllEvents, time);
-  }
-}
 
 /**
 Start the game of life
@@ -512,17 +681,14 @@ void GameOfLife::start_game_of_life(){
 Do one step of the game of life
 */
 void GameOfLife::update_cell_grid(){
-  for (int i = 0; i < grid_height; i++){
-    for (int j = 0; j < grid_width; j++){
-      // Cell number
-      int cell_num = i * grid_width + j;
-
+  for (int i = 1; i <= grid_height; i++){
+    for (int j = 1; j <= grid_width; j++){
       // Update cell items (in our regular cell grid, we begin to count at 1)
-      if (cell_grid->is_cell(i+1, j+1)){
-        cell_items[cell_num]->set_alive();
+      if (cell_grid->is_cell(i, j)){
+        set_item_alive(i, j);
       }
       else{
-        cell_items[cell_num]->set_empty();
+        set_item_empty(i, j);
       }
     }
   }

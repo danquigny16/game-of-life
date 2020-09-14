@@ -14,7 +14,7 @@ CC            = gcc
 CXX           = g++
 DEFINES       = -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_MULTIMEDIA_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -O2 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
-CXXFLAGS      = -pipe -O2 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
+CXXFLAGS      = -pipe -std=c++11 -O2 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 INCPATH       = -I. -I. -isystem /usr/include/x86_64-linux-gnu/qt5 -isystem /usr/include/x86_64-linux-gnu/qt5/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt5/QtMultimedia -isystem /usr/include/x86_64-linux-gnu/qt5/QtGui -isystem /usr/include/x86_64-linux-gnu/qt5/QtNetwork -isystem /usr/include/x86_64-linux-gnu/qt5/QtCore -Ibuild -isystem /usr/include/libdrm -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++
 QMAKE         = /usr/lib/qt5/bin/qmake
 DEL_FILE      = rm -f
@@ -53,10 +53,12 @@ OBJECTS_DIR   = build/
 SOURCES       = src/GameOfLife.cpp \
 		src/CellItem.cpp \
 		src/CellGrid.cpp \
+		src/RleHandler.cpp \
 		src/main.cpp build/moc_GameOfLife.cpp
 OBJECTS       = build/GameOfLife.o \
 		build/CellItem.o \
 		build/CellGrid.o \
+		build/RleHandler.o \
 		build/main.o \
 		build/moc_GameOfLife.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
@@ -136,9 +138,11 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
 		GameOfLife.pro src/GameOfLife.hpp \
 		src/CellItem.hpp \
-		src/CellGrid.hpp src/GameOfLife.cpp \
+		src/CellGrid.hpp \
+		src/RleHandler.hpp src/GameOfLife.cpp \
 		src/CellItem.cpp \
 		src/CellGrid.cpp \
+		src/RleHandler.cpp \
 		src/main.cpp
 QMAKE_TARGET  = gameOfLife
 DESTDIR       = 
@@ -329,8 +333,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/GameOfLife.hpp src/CellItem.hpp src/CellGrid.hpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/GameOfLife.cpp src/CellItem.cpp src/CellGrid.cpp src/main.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/GameOfLife.hpp src/CellItem.hpp src/CellGrid.hpp src/RleHandler.hpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/GameOfLife.cpp src/CellItem.cpp src/CellGrid.cpp src/RleHandler.cpp src/main.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -360,12 +364,13 @@ compiler_moc_predefs_make_all: build/moc_predefs.h
 compiler_moc_predefs_clean:
 	-$(DEL_FILE) build/moc_predefs.h
 build/moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
-	g++ -pipe -O2 -Wall -W -dM -E -o build/moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
+	g++ -pipe -std=c++11 -O2 -Wall -W -dM -E -o build/moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
 compiler_moc_header_make_all: build/moc_GameOfLife.cpp
 compiler_moc_header_clean:
 	-$(DEL_FILE) build/moc_GameOfLife.cpp
-build/moc_GameOfLife.cpp: src/CellItem.hpp \
+build/moc_GameOfLife.cpp: src/RleHandler.hpp \
+		src/CellItem.hpp \
 		src/CellGrid.hpp \
 		src/GameOfLife.hpp \
 		build/moc_predefs.h \
@@ -387,11 +392,13 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 ####### Compile
 
 build/GameOfLife.o: src/GameOfLife.cpp src/GameOfLife.hpp \
+		src/RleHandler.hpp \
 		src/CellItem.hpp \
 		src/CellGrid.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/GameOfLife.o src/GameOfLife.cpp
 
 build/CellItem.o: src/CellItem.cpp src/GameOfLife.hpp \
+		src/RleHandler.hpp \
 		src/CellItem.hpp \
 		src/CellGrid.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/CellItem.o src/CellItem.cpp
@@ -399,7 +406,11 @@ build/CellItem.o: src/CellItem.cpp src/GameOfLife.hpp \
 build/CellGrid.o: src/CellGrid.cpp src/CellGrid.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/CellGrid.o src/CellGrid.cpp
 
+build/RleHandler.o: src/RleHandler.cpp src/RleHandler.hpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/RleHandler.o src/RleHandler.cpp
+
 build/main.o: src/main.cpp src/GameOfLife.hpp \
+		src/RleHandler.hpp \
 		src/CellItem.hpp \
 		src/CellGrid.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/main.o src/main.cpp
